@@ -16,13 +16,58 @@ let polyline // La polyline en cours de construction;
 
 const polylineMachine = createMachine(
     {
-        /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgAcsAbATwBkBLDMfEI2SgF0qwzoA9EBaANnVI9eAOgAM4iZMkB2ZGnokK1MMMoRitJAsYs2nRABYATAMQAOAIzCD0gJwXetgwGZezgw9ty5QA */
-        id: "polyLine",
-        initial: "idle",
-        states : {
-            idle: {
-            }
-        }
+        id: "Polyline Arthur",
+        initial: "Initial state",
+        states: {
+            "Initial state": {
+                on: {
+                    MOUSECLICK: {
+                        target: "Wait",
+                        actions: "createLine",
+                    },
+                },
+            },
+            "Wait": {
+                on: {
+                    "MOUSEMOVE": {
+                        target: "Wait",
+                        cond: pasPlein,
+                        actions: "setLastPoint",
+                    },
+                    "Escape": {
+                        target: "Initial state",
+                        cond: plusDeDeuxPoints,
+                        actions: {
+                            type: "abandon",
+                        },
+                    },
+                    "Enter IF=pasPlein and IF=plusDeDeuxPoints": {
+                        target: "Initial state",
+                        actions: {
+                            type: "saveLine",
+                        },
+                    },
+                    "MOUSECLICK IF=plein": {
+                        target: "Initial state",
+                        actions: {
+                            type: "saveLine",
+                        },
+                    },
+                    "Backspace IF=pasPleinEtPlusDeDeuxPoints": {
+                        target: "Wait",
+                        actions: {
+                            type: "removeLastPoint",
+                        },
+                    },
+                    "MOUSECLICK IF=pasPlein": {
+                        target: "Wait",
+                        actions: {
+                            type: "addPoint",
+                        },
+                    },
+                },
+            },
+        },
     },
     // Quelques actions et guardes que vous pouvez utiliser dans votre machine
     {
@@ -79,6 +124,10 @@ const polylineMachine = createMachine(
             },
         },
         guards: {
+            // On ne peut pas ajouter de point
+            plein: (context, event) => {
+                return polyline.points().length >= MAX_POINTS * 2;
+            },
             // On peut encore ajouter un point
             pasPlein: (context, event) => {
                 return polyline.points().length < MAX_POINTS * 2;
@@ -88,6 +137,14 @@ const polylineMachine = createMachine(
                 // Deux coordonnées pour chaque point, plus le point provisoire
                 return polyline.points().length > 6;
             },
+            pasPleinEtPlusDeDeuxPoints: (context, event) => {
+                let result = false;
+                // Deux coordonnées pour chaque point, plus le point provisoire
+                if (polyline.points().length >= 6 && polyline.points().length < MAX_POINTS * 2) {
+                    result = true;
+                }
+                return result;
+            }
         },
     }
 );
@@ -113,3 +170,4 @@ window.addEventListener("keydown", (event) => {
     // Enverra "a", "b", "c", "Escape", "Backspace", "Enter"... à la machine
     polylineService.send(event.key);
 });
+
